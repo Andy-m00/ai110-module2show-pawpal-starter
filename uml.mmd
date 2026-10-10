@@ -1,0 +1,51 @@
+classDiagram
+    class Owner {
+        +name
+        +preferences
+        +addPet()
+        +scheduleWalk()
+        +viewDailyTaskSchedule()
+        +planCare()
+    }
+
+    class Pet {
+        +name
+        +species
+        +breed
+        +age
+    }
+
+    class Scheduler {
+        +scheduleTask()
+        +viewDailyTaskSchedule()
+    }
+
+    class DogTasks {
+        +groom()
+        +walk()
+        +enrichment()
+        +meds()
+        +feeding()
+    }
+
+    class CatTasks {
+        +nailTrimming()
+        +enrichment()
+        +meds()
+        +feeding()
+    }
+
+    class RabbitTasks {
+        +gardenTime()
+        +meds()
+        +feeding()
+    }
+
+    Owner <|-- Pet: owner has pets
+    Owner <| -- Scheduler: sets the schedule
+    Pet <|-- DogTasks
+    Pet <|-- CatTasks
+    Pet <|-- RabbitTasks
+    Scheduler --> DogTasks : schedules
+    Scheduler --> CatTasks : schedules
+    Scheduler --> RabbitTasks : schedules
