@@ -31,10 +31,7 @@ with st.expander("Add a pet", expanded=not owner.pets):
         age = st.number_input("Age (years)", min_value=0, max_value=100, value=1)
         add_pet = st.form_submit_button("Add pet")
 
-# this section adds a pet using method owner.add_pet. it also uses another function called find_pet() that returns a 
-# pet object if its located in owner.pets. if the pet is not found, it will return NONE. 
-# The method find_pet doubles as a convienint way to navigate 
-# to specific pet objects to add or remove tasks to its dynamic lists of task objects.
+######################################################################################################
 
     if add_pet:
         if not pet_name.strip():
@@ -50,12 +47,7 @@ with st.expander("Add a pet", expanded=not owner.pets):
             )
             st.success(f"Added {pet_name.strip()}.")
 
-# this section adds care tasks to a pet object. it uses a method in class Pet called create_task() to add tasks.
-# it utilizes a st.selectbox and the find_pet() method to choose a specific pet to add tasks to. It loads the pet object
-# into a variable called selected_pet. The create_task() method is called on the selected_pet object to add a task
-# to its dynamic list of task objects. select boxes are utilized for choosing time of day and priorityto reduce user input errors.
-# it also importanatly calls a function from scheduler class called scheduletask that immediately adds and organizes it into
-# a daily schedule. If the task cannot be added to the schedule, it is removed from the pet's list of tasks and an error message is displayed.
+###############################################################################################################
 
 if owner.pets:
     st.subheader("Add a care task")
@@ -126,8 +118,7 @@ if owner.pets:
                 st.error(
                     f"Not enough available time in the {time_of_day} for this task."
                 )
-########################################################################################################
-########################################################################################################
+
 ########################################################################################################
 
     st.subheader("Remove a care task")
@@ -170,8 +161,6 @@ if owner.pets:
 else:
     st.info("Add a pet before creating care tasks.")
 
-#######################################################################################################
-#######################################################################################################
 #######################################################################################################
 
 st.divider()
