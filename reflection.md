@@ -5,12 +5,15 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+it has 4 classes with pet being a subclass of owner and tasks being a subclass of pet. Ideali when everything is done the only way someone can access an instance of tasks is through scheduler and any instance of pet through the owner.
 - What classes did you include, and what responsibilities did you assign to each?
 
 **b. Design changes**
 
 - Did your design change during implementation?
+yes it did. there was some confusion over the way the relationships worked.
 - If yes, describe at least one change and why you made it.
+many of the relationshps were changed to "has" realtionships. like owner "has" pets and owner "has" a scheduler.
 
 ---
 

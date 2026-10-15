@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 
 
 @dataclass
@@ -10,20 +11,40 @@ class Owner:
     name: str
     preferences: dict[str, str] = field(default_factory=dict)
     pets: list[Pet] = field(default_factory=list)
-    scheduler: Scheduler | None = None
+    scheduler: Scheduler = field(init=False)
 
-    def addPet(self, _pet: Pet) -> None:
-        pass
+    def __post_init__(self) -> None:
+        self.scheduler = Scheduler(owner=self)
 
-    def scheduleWalk(self) -> None:
-        pass
+    def find_pet(self, name: str) -> Pet | None:
+        for pet in self.pets:
+            if pet.name == name:
+                return pet
+        return None
 
-    def viewDailyTaskSchedule(self) -> None:
-        pass
+    def add_pet(self, name: str, species: str, breed: str, age: int) -> Pet:
+        pet = Pet(name=name, species=species, breed=breed, age=age)
+        self.pets.append(pet)
+        return pet
 
-    def planCare(self) -> None:
-        pass
+@dataclass
+class Task:
+    pet_name_class: str
+    time_of_day: str
+    duration: int
+    task_description: str
+    priority: str
+    recurrence: str
+    day_of_the_week: str | None
+    scheduled_date: date | None = None
+    completion_status: bool = False
 
+    def markscomplete(self) -> bool:
+        self.completion_status = True
+        return self.completion_status
+
+    def reset_completion(self) -> None:
+        self.completion_status = False
 
 @dataclass
 class Pet:
@@ -31,62 +52,175 @@ class Pet:
     species: str
     breed: str
     age: int
-    tasks: list[DogTasks | CatTasks | RabbitTasks] = field(default_factory=list)
+    tasks: list[Task] = field(default_factory=list)
+
+    def create_task(
+        self,
+        time_of_day: str,
+        duration: int,
+        task_description: str,
+        priority: str,
+        pet_name_class: str,
+        recurrence: str = "daily",
+        day_of_the_week: str | None = None,
+        scheduled_date: date | None = None,
+    ) -> Task:
+        task = Task(
+            time_of_day=time_of_day,
+            duration=duration,
+            task_description=task_description,
+            priority=priority,
+            pet_name_class=pet_name_class,
+            recurrence=recurrence,
+            day_of_the_week=day_of_the_week,
+            scheduled_date=scheduled_date,
+        )
+        self.tasks.append(task)
+
+        return task
 
 
 @dataclass
 class Scheduler:
-    dog_tasks: list[DogTasks] = field(default_factory=list)
-    cat_tasks: list[CatTasks] = field(default_factory=list)
-    rabbit_tasks: list[RabbitTasks] = field(default_factory=list)
+    owner: Owner
+    schedule_date: date = field(default_factory=date.today)
+    whatDayIsIt: str = field(
+        default_factory=lambda: date.today().strftime("%A").lower()
+    )
+    daily_schedule: list[Task] = field(default_factory=list)
+    available_minutes: dict[str, int] = field(default_factory=lambda: {
+        "morning": 359,
+        "afternoon": 299,
+        "evening": 300,
+    })
 
-    def scheduleTask(self) -> None:
-        pass
+    def task_is_due(self, task: Task, schedule_date: date) -> bool:
+        weekday = schedule_date.strftime("%A").lower()
 
-    def viewDailyTaskSchedule(self) -> None:
-        pass
+        if task.recurrence == "daily":
+            return True
+        if task.recurrence == "weekly":
+            return task.day_of_the_week == weekday
+        if task.recurrence == "once":
+            return task.scheduled_date == schedule_date
+        return False
 
+    def next_date_for_weekday(
+        self, weekday: str, start_date: date | None = None
+    ) -> date:
+        weekday_numbers = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
+        }
+        if weekday not in weekday_numbers:
+            raise ValueError(f"Invalid weekday: {weekday}")
 
-@dataclass
-class DogTasks:
-    def groom(self) -> None:
-        pass
+        start_date = start_date or date.today()
+        days_ahead = (weekday_numbers[weekday] - start_date.weekday()) % 7
+        return start_date + timedelta(days=days_ahead)
 
-    def walk(self) -> None:
-        pass
+    def scheduleTask(self, task: Task) -> bool:
+        if not self.task_is_due(task, self.schedule_date):
+            return False
+        if task in self.daily_schedule:
+            return True
 
-    def enrichment(self) -> None:
-        pass
+        time_order = {"morning": 0, "afternoon": 1, "evening": 2}
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        remaining = self.available_minutes[task.time_of_day]
+        if task.duration > remaining:
+            return False
 
-    def meds(self) -> None:
-        pass
+        new_time = time_order[task.time_of_day]
+        new_priority = priority_order[task.priority.strip().lower()]
 
-    def feeding(self) -> None:
-        pass
+        for index, scheduled_task in enumerate(self.daily_schedule):
+            scheduled_time = time_order[scheduled_task.time_of_day]
+            scheduled_priority = priority_order[scheduled_task.priority.strip().lower()]
 
+            if scheduled_time > new_time:
+                self.daily_schedule.insert(index, task)
+                break
 
-@dataclass
-class CatTasks:
-    def nailTrimming(self) -> None:
-        pass
+            if scheduled_time < new_time:
+                continue
 
-    def enrichment(self) -> None:
-        pass
+            if scheduled_priority > new_priority:
+                self.daily_schedule.insert(index, task)
+                break
 
-    def meds(self) -> None:
-        pass
+            if (
+                scheduled_priority == new_priority
+                and scheduled_task.duration > task.duration
+            ):
+                self.daily_schedule.insert(index, task)
+                break
+        else:
+            self.daily_schedule.append(task)
 
-    def feeding(self) -> None:
-        pass
+        self.available_minutes[task.time_of_day] -= task.duration
+        return True
 
+    def generate_schedule(self, schedule_date: date) -> list[Task]:
+        self.schedule_date = schedule_date
+        self.whatDayIsIt = schedule_date.strftime("%A").lower()
+        self.daily_schedule.clear()
+        self.available_minutes = {
+            "morning": 359,
+            "afternoon": 299,
+            "evening": 300,
+        }
 
-@dataclass
-class RabbitTasks:
-    def gardenTime(self) -> None:
-        pass
+        failed_tasks = []
+        for pet in self.owner.pets:
+            for task in pet.tasks:
+                if task.recurrence in {
+                    "daily",
+                    "weekly",
+                } and self.task_is_due(task, schedule_date):
+                    task.reset_completion()
 
-    def meds(self) -> None:
-        pass
+                if self.task_is_due(task, schedule_date):
+                    if not self.scheduleTask(task):
+                        failed_tasks.append(task)
 
-    def feeding(self) -> None:
-        pass
+        return failed_tasks
+
+    def removeTask(self, task: Task, pet: Pet) -> bool:
+        if task not in pet.tasks:
+            return False
+
+        pet.tasks.remove(task)
+
+        if task in self.daily_schedule:
+            self.daily_schedule.remove(task)
+            if task.time_of_day in self.available_minutes:
+                self.available_minutes[task.time_of_day] += task.duration
+            return True
+
+        return True
+
+    def view_schedule(self):
+        return [
+            {
+                "Pet": task.pet_name_class,
+                "Time": task.time_of_day,
+                "Task": task.task_description,
+                "Duration": task.duration,
+                "Scheduled date": self.schedule_date.isoformat(),
+                "Day of week": self.whatDayIsIt,
+                "Repeats": (
+                    f"weekly on {task.day_of_the_week}"
+                    if task.recurrence == "weekly"
+                    else task.recurrence
+                ),
+                "Complete": task.completion_status,
+            }
+            for task in self.daily_schedule
+        ]
+        

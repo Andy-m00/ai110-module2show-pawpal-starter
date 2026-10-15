@@ -1,51 +1,53 @@
 classDiagram
     class Owner {
-        +name
-        +preferences
-        +addPet()
-        +scheduleWalk()
-        +viewDailyTaskSchedule()
-        +planCare()
+        +name: str
+        +preferences: dict~str, str~
+        +pets: list~Pet~
+        +scheduler: Scheduler
+        +__post_init__() None
+        +find_pet(name: str) Pet | None
+        +add_pet(name: str, species: str, breed: str, age: int) Pet
     }
 
     class Pet {
-        +name
-        +species
-        +breed
-        +age
+        +name: str
+        +species: str
+        +breed: str
+        +age: int
+        +tasks: list~Task~
+        +create_task(time_of_day: str, duration: int, task_description: str, priority: str, pet_name_class: str, recurrence: str = daily, day_of_the_week: str | None = None, scheduled_date: date | None = None) Task
+    }
+
+    class Task {
+        +pet_name_class: str
+        +time_of_day: str
+        +duration: int
+        +task_description: str
+        +priority: str
+        +recurrence: str
+        +day_of_the_week: str | None
+        +scheduled_date: date | None
+        +completion_status: bool
+        +markscomplete() bool
+        +reset_completion() None
     }
 
     class Scheduler {
-        +scheduleTask()
-        +viewDailyTaskSchedule()
+        +owner: Owner
+        +schedule_date: date
+        +whatDayIsIt: str
+        +daily_schedule: list~Task~
+        +available_minutes: dict~str, int~
+        +task_is_due(task: Task, schedule_date: date) bool
+        +next_date_for_weekday(weekday: str, start_date: date | None = None) date
+        +scheduleTask(task: Task) bool
+        +generate_schedule(schedule_date: date) list~Task~
+        +removeTask(task: Task, pet: Pet) bool
+        +view_schedule() list~dict~
     }
 
-    class DogTasks {
-        +groom()
-        +walk()
-        +enrichment()
-        +meds()
-        +feeding()
-    }
-
-    class CatTasks {
-        +nailTrimming()
-        +enrichment()
-        +meds()
-        +feeding()
-    }
-
-    class RabbitTasks {
-        +gardenTime()
-        +meds()
-        +feeding()
-    }
-
-    Owner <|-- Pet: owner has pets
-    Owner <| -- Scheduler: sets the schedule
-    Pet <|-- DogTasks
-    Pet <|-- CatTasks
-    Pet <|-- RabbitTasks
-    Scheduler --> DogTasks : schedules
-    Scheduler --> CatTasks : schedules
-    Scheduler --> RabbitTasks : schedules
+    Owner "1" *-- "0..*" Pet : owns
+    Owner "1" *-- "1" Scheduler : owns
+    Pet "1" *-- "0..*" Task : has
+    Scheduler --> Owner : references
+    Scheduler --> Task : schedules
